@@ -56,11 +56,12 @@ BLEForEmulator/
 
 ## Quick Start
 
-### 1. Build and run the Mac bridge
+### 1. Install the Mac bridge
 
-Open `mac/BLEForEmulator/BLEForEmulator.xcodeproj` in Xcode, build, and run. The app lives in the menu bar. Grant Bluetooth permission when prompted.
-
-> See [`mac/README.md`](mac/README.md) for full setup instructions including required entitlements.
+1. Download `BLEForEmulator.zip` from [Releases](https://github.com/engelon/BLEForEmulator/releases)
+2. Unzip and move `BLEForEmulator.app` to `/Applications`
+3. Open it — grant Bluetooth permission when prompted
+4. The menu bar icon confirms the bridge is listening
 
 ### 2. Add the Android library
 
