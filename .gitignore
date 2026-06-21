@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Xcode
+mac/BLEForEmulator/BLEForEmulator.xcodeproj/xcuserdata/
+mac/BLEForEmulator/BLEForEmulator/DerivedData/
+*.xcuserstate
+
+# Swift Package Manager
+.build/
+.swiftpm/xcode/
+
+# Android
+android/.gradle/
+android/build/
+android/lib/build/
+android/local.properties
+android/.idea/
+
+# General
+*.zip

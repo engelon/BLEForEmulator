@@ -1,0 +1,445 @@
+{
+  "$schema": "BLEForEmulator Bridge Protocol v1",
+  "version": 1,
+  "transport": "TCP, port 7877, newline-delimited JSON (one message per line)",
+  "encoding": {
+    "binary": "base64 strings",
+    "uuids": "uppercase hyphenated, e.g. 180A or A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+    "addresses": "colon-separated uppercase MAC, e.g. AA:BB:CC:DD:EE:FF"
+  },
+
+  "envelope": {
+    "description": "Every message is a flat JSON object with either a 'command' or 'event' key as the discriminator. All other fields are payload. An optional 'id' field enables request-response correlation.",
+    "commandShape": {
+      "command": "string — the command name",
+      "id": "string? — optional UUID for correlation"
+    },
+    "eventShape": {
+      "event": "string — the event name",
+      "id": "string? — echoed from the originating command if provided",
+      "error": "string? — present only when the event represents a failure"
+    }
+  },
+
+  "commands": {
+
+    "startScan": {
+      "direction": "emulator → Mac",
+      "description": "Begin scanning for BLE peripherals. Mac will emit advertisementFound events for each discovery.",
+      "fields": {
+        "serviceUuids": "string[]? — filter to peripherals advertising these service UUIDs. Omit to scan for all."
+      },
+      "example": {
+        "command": "startScan",
+        "serviceUuids": ["A1B2C3D4-E5F6-7890-ABCD-EF1234567890"]
+      }
+    },
+
+    "stopScan": {
+      "direction": "emulator → Mac",
+      "description": "Stop an active scan.",
+      "fields": {},
+      "example": {
+        "command": "stopScan"
+      }
+    },
+
+    "connect": {
+      "direction": "emulator → Mac",
+      "description": "Connect to a peripheral by address. Mac will emit connected or connectionFailed.",
+      "fields": {
+        "address": "string — peripheral MAC address from an advertisementFound event"
+      },
+      "example": {
+        "command": "connect",
+        "id": "req-001",
+        "address": "AA:BB:CC:DD:EE:FF"
+      }
+    },
+
+    "discoverServices": {
+      "direction": "emulator → Mac",
+      "description": "Discover all services and characteristics on a connected peripheral. Mac will emit servicesDiscovered.",
+      "fields": {
+        "connectionId": "string — from the connected event"
+      },
+      "example": {
+        "command": "discoverServices",
+        "connectionId": "conn-abc123"
+      }
+    },
+
+    "readCharacteristic": {
+      "direction": "emulator → Mac",
+      "description": "Read a characteristic value. Mac will emit characteristicRead.",
+      "fields": {
+        "connectionId": "string",
+        "serviceUuid": "string",
+        "characteristicUuid": "string"
+      },
+      "example": {
+        "command": "readCharacteristic",
+        "id": "req-002",
+        "connectionId": "conn-abc123",
+        "serviceUuid": "180A",
+        "characteristicUuid": "2A29"
+      }
+    },
+
+    "writeCharacteristic": {
+      "direction": "emulator → Mac",
+      "description": "Write a value to a characteristic. If withResponse is true, Mac emits writeAcknowledged on success.",
+      "fields": {
+        "connectionId": "string",
+        "serviceUuid": "string",
+        "characteristicUuid": "string",
+        "value": "string — base64-encoded bytes",
+        "withResponse": "boolean — true = write with response (reliable), false = write without response (fast)"
+      },
+      "example": {
+        "command": "writeCharacteristic",
+        "id": "req-003",
+        "connectionId": "conn-abc123",
+        "serviceUuid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+        "characteristicUuid": "B2C3D4E5-F6A7-8901-BCDE-F12345678901",
+        "value": "eyJ0eXBlIjoiam9pbl9yZXF1ZXN0In0=",
+        "withResponse": true
+      }
+    },
+
+    "setNotify": {
+      "direction": "emulator → Mac",
+      "description": "Subscribe to or unsubscribe from characteristic notifications. When enabled, Mac emits characteristicChanged on each update.",
+      "fields": {
+        "connectionId": "string",
+        "serviceUuid": "string",
+        "characteristicUuid": "string",
+        "enable": "boolean"
+      },
+      "example": {
+        "command": "setNotify",
+        "connectionId": "conn-abc123",
+        "serviceUuid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+        "characteristicUuid": "B2C3D4E5-F6A7-8901-BCDE-F12345678901",
+        "enable": true
+      }
+    },
+
+    "advertise": {
+      "direction": "emulator → Mac",
+      "description": "Begin advertising as a BLE peripheral. The Mac will advertise using CoreBluetooth on behalf of the emulator. Incoming connection requests emit connectionRequestReceived.",
+      "fields": {
+        "serviceUuids": "string[] — service UUIDs to include in the advertisement",
+        "localName": "string? — device name to advertise (omit to not include name)",
+        "characteristics": [
+          {
+            "serviceUuid": "string",
+            "characteristicUuid": "string",
+            "properties": "string[] — any of: read, write, writeWithoutResponse, notify, indicate",
+            "permissions": "string[] — any of: readable, writeable"
+          }
+        ]
+      },
+      "example": {
+        "command": "advertise",
+        "serviceUuids": ["A1B2C3D4-E5F6-7890-ABCD-EF1234567890"],
+        "localName": "MyDevice",
+        "characteristics": [
+          {
+            "serviceUuid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+            "characteristicUuid": "B2C3D4E5-F6A7-8901-BCDE-F12345678901",
+            "properties": ["write", "notify"],
+            "permissions": ["writeable"]
+          }
+        ]
+      }
+    },
+
+    "stopAdvertise": {
+      "direction": "emulator → Mac",
+      "description": "Stop advertising.",
+      "fields": {},
+      "example": {
+        "command": "stopAdvertise"
+      }
+    },
+
+    "sendNotification": {
+      "direction": "emulator → Mac",
+      "description": "Send a notification to a subscribed central (used when the emulator is acting as a peripheral host).",
+      "fields": {
+        "connectionId": "string — the central's connection ID from connectionRequestReceived",
+        "serviceUuid": "string",
+        "characteristicUuid": "string",
+        "value": "string — base64-encoded bytes"
+      },
+      "example": {
+        "command": "sendNotification",
+        "connectionId": "central-xyz789",
+        "serviceUuid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+        "characteristicUuid": "B2C3D4E5-F6A7-8901-BCDE-F12345678901",
+        "value": "eyJ0eXBlIjoiaGFuZG9mZiJ9"
+      }
+    },
+
+    "disconnect": {
+      "direction": "emulator → Mac",
+      "description": "Disconnect from a peripheral.",
+      "fields": {
+        "connectionId": "string"
+      },
+      "example": {
+        "command": "disconnect",
+        "connectionId": "conn-abc123"
+      }
+    }
+  },
+
+  "events": {
+
+    "advertisementFound": {
+      "direction": "Mac → emulator",
+      "description": "A peripheral was discovered during a scan. May fire multiple times for the same peripheral as advertisements are received.",
+      "fields": {
+        "address": "string — stable identifier for this peripheral (MAC on Android, UUID on iOS)",
+        "localName": "string? — advertised local name if present",
+        "rssi": "integer — signal strength in dBm",
+        "serviceUuids": "string[] — advertised service UUIDs",
+        "serviceData": "object? — map of serviceUuid → base64 data"
+      },
+      "example": {
+        "event": "advertisementFound",
+        "address": "AA:BB:CC:DD:EE:FF",
+        "localName": "TypeRaceHost",
+        "rssi": -62,
+        "serviceUuids": ["A1B2C3D4-E5F6-7890-ABCD-EF1234567890"],
+        "serviceData": {}
+      }
+    },
+
+    "scanFailed": {
+      "direction": "Mac → emulator",
+      "description": "The scan could not be started.",
+      "fields": {
+        "error": "string — reason"
+      },
+      "example": {
+        "event": "scanFailed",
+        "error": "Bluetooth powered off"
+      }
+    },
+
+    "connected": {
+      "direction": "Mac → emulator",
+      "description": "Connection to a peripheral was established.",
+      "fields": {
+        "connectionId": "string — use this in all subsequent commands for this peripheral",
+        "address": "string — echoed from the connect command",
+        "id": "string? — echoed from the connect command if provided"
+      },
+      "example": {
+        "event": "connected",
+        "id": "req-001",
+        "connectionId": "conn-abc123",
+        "address": "AA:BB:CC:DD:EE:FF"
+      }
+    },
+
+    "connectionFailed": {
+      "direction": "Mac → emulator",
+      "description": "A connect attempt failed.",
+      "fields": {
+        "address": "string",
+        "error": "string",
+        "id": "string?"
+      },
+      "example": {
+        "event": "connectionFailed",
+        "id": "req-001",
+        "address": "AA:BB:CC:DD:EE:FF",
+        "error": "Peripheral not reachable"
+      }
+    },
+
+    "servicesDiscovered": {
+      "direction": "Mac → emulator",
+      "description": "Service and characteristic discovery completed.",
+      "fields": {
+        "connectionId": "string",
+        "services": [
+          {
+            "uuid": "string",
+            "characteristics": [
+              {
+                "uuid": "string",
+                "properties": "string[] — any of: read, write, writeWithoutResponse, notify, indicate"
+              }
+            ]
+          }
+        ]
+      },
+      "example": {
+        "event": "servicesDiscovered",
+        "connectionId": "conn-abc123",
+        "services": [
+          {
+            "uuid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+            "characteristics": [
+              {
+                "uuid": "B2C3D4E5-F6A7-8901-BCDE-F12345678901",
+                "properties": ["write", "notify"]
+              }
+            ]
+          }
+        ]
+      }
+    },
+
+    "characteristicRead": {
+      "direction": "Mac → emulator",
+      "description": "Result of a readCharacteristic command.",
+      "fields": {
+        "connectionId": "string",
+        "characteristicUuid": "string",
+        "value": "string — base64-encoded bytes",
+        "id": "string?"
+      },
+      "example": {
+        "event": "characteristicRead",
+        "id": "req-002",
+        "connectionId": "conn-abc123",
+        "characteristicUuid": "2A29",
+        "value": "QXBwbGU="
+      }
+    },
+
+    "characteristicChanged": {
+      "direction": "Mac → emulator",
+      "description": "A subscribed characteristic sent a notification or indication.",
+      "fields": {
+        "connectionId": "string",
+        "characteristicUuid": "string",
+        "value": "string — base64-encoded bytes"
+      },
+      "example": {
+        "event": "characteristicChanged",
+        "connectionId": "conn-abc123",
+        "characteristicUuid": "B2C3D4E5-F6A7-8901-BCDE-F12345678901",
+        "value": "eyJ0eXBlIjoiaGFuZG9mZiJ9"
+      }
+    },
+
+    "writeAcknowledged": {
+      "direction": "Mac → emulator",
+      "description": "A write-with-response was confirmed by the peripheral.",
+      "fields": {
+        "connectionId": "string",
+        "characteristicUuid": "string",
+        "id": "string?"
+      },
+      "example": {
+        "event": "writeAcknowledged",
+        "id": "req-003",
+        "connectionId": "conn-abc123",
+        "characteristicUuid": "B2C3D4E5-F6A7-8901-BCDE-F12345678901"
+      }
+    },
+
+    "connectionRequestReceived": {
+      "direction": "Mac → emulator",
+      "description": "A central connected to the peripheral being advertised by the emulator via the Mac bridge.",
+      "fields": {
+        "connectionId": "string — use in sendNotification and characteristicWriteReceived",
+        "centralId": "string? — opaque identifier for the connecting central (may not always be available)"
+      },
+      "example": {
+        "event": "connectionRequestReceived",
+        "connectionId": "central-xyz789"
+      }
+    },
+
+    "characteristicWriteReceived": {
+      "direction": "Mac → emulator",
+      "description": "A central wrote to one of the advertised characteristics (emulator is acting as peripheral/host).",
+      "fields": {
+        "connectionId": "string — the central's connection ID",
+        "serviceUuid": "string",
+        "characteristicUuid": "string",
+        "value": "string — base64-encoded bytes"
+      },
+      "example": {
+        "event": "characteristicWriteReceived",
+        "connectionId": "central-xyz789",
+        "serviceUuid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+        "characteristicUuid": "B2C3D4E5-F6A7-8901-BCDE-F12345678901",
+        "value": "eyJ0eXBlIjoiam9pbl9yZXF1ZXN0In0="
+      }
+    },
+
+    "disconnected": {
+      "direction": "Mac → emulator",
+      "description": "A peripheral disconnected or the connection was lost.",
+      "fields": {
+        "connectionId": "string",
+        "error": "string? — present only for unexpected disconnects"
+      },
+      "example": {
+        "event": "disconnected",
+        "connectionId": "conn-abc123"
+      }
+    },
+
+    "bridgeReady": {
+      "direction": "Mac → emulator",
+      "description": "Sent by the Mac bridge immediately on TCP connection. Confirms the bridge is alive and provides its protocol version.",
+      "fields": {
+        "protocolVersion": "integer",
+        "platform": "string — always 'macOS'",
+        "bluetoothState": "string — poweredOn | poweredOff | unauthorized | unsupported"
+      },
+      "example": {
+        "event": "bridgeReady",
+        "protocolVersion": 1,
+        "platform": "macOS",
+        "bluetoothState": "poweredOn"
+      }
+    },
+
+    "bluetoothStateChanged": {
+      "direction": "Mac → emulator",
+      "description": "The Mac's Bluetooth state changed (e.g. user toggled it off).",
+      "fields": {
+        "bluetoothState": "string — poweredOn | poweredOff | unauthorized | unsupported"
+      },
+      "example": {
+        "event": "bluetoothStateChanged",
+        "bluetoothState": "poweredOff"
+      }
+    }
+  },
+
+  "flows": {
+    "scanAndConnect": [
+      "emulator → startScan",
+      "Mac → advertisementFound (one or more)",
+      "emulator → stopScan",
+      "emulator → connect",
+      "Mac → connected",
+      "emulator → discoverServices",
+      "Mac → servicesDiscovered",
+      "emulator → setNotify (enable)",
+      "emulator → writeCharacteristic",
+      "Mac → writeAcknowledged",
+      "Mac → characteristicChanged (notification from peripheral)",
+      "emulator → disconnect",
+      "Mac → disconnected"
+    ],
+    "advertiseAndReceive": [
+      "emulator → advertise",
+      "Mac → connectionRequestReceived (when a central connects)",
+      "Mac → characteristicWriteReceived (when central writes)",
+      "emulator → sendNotification (respond to the central)",
+      "emulator → stopAdvertise"
+    ]
+  }
+}
