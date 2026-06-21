@@ -6,19 +6,27 @@ Kotlin library that gives Android emulators real Bluetooth by routing BLE operat
 
 ## Setup
 
-### 1. Copy sources
+### 1. Add JitPack to your root `settings.gradle.kts`
 
-Until JitPack / Maven publishing is available, copy the four source files into your project:
-
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
 ```
-android/lib/src/main/java/com/bleforemulator/
-  BLEBridge.kt          ← public entry point
-  BridgeProtocol.kt     ← command/event codec
-  BridgeTCPClient.kt    ← TCP transport (background thread)
-  EmulatorDetector.kt   ← detects AVD / Genymotion
+
+### 2. Add the dependency
+
+```kotlin
+// app/build.gradle.kts
+dependencies {
+    debugImplementation("com.github.engelon:BLEForEmulator:v0.1.1")
+}
 ```
 
-No external dependencies — the library uses `java.net` sockets and Android's built-in `org.json`.
+Use `debugImplementation` to keep it out of production builds.
 
 ### 2. Manifest permission
 

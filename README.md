@@ -64,7 +64,22 @@ Open `mac/BLEForEmulator/BLEForEmulator.xcodeproj` in Xcode, build, and run. The
 
 ### 2. Add the Android library
 
-Copy the source files from `android/lib/src/main/java/com/bleforemulator/` into your project (JitPack / Maven publishing coming soon).
+In your root `settings.gradle.kts`:
+
+```kotlin
+repositories {
+    mavenCentral()
+    maven { url = uri("https://jitpack.io") }
+}
+```
+
+In your app's `build.gradle.kts`:
+
+```kotlin
+dependencies {
+    debugImplementation("com.github.engelon:BLEForEmulator:v0.1.1")
+}
+```
 
 Add the `INTERNET` permission to your `AndroidManifest.xml`:
 
